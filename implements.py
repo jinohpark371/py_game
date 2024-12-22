@@ -25,19 +25,33 @@ class Basic:
 
 
 class Block(Basic):
-    def __init__(self, color: tuple, pos: tuple = (0,0), alive = True):
+   def __init__(self, color: tuple, pos: tuple = (0, 0), alive=True):
         super().__init__(color, 0, pos, config.block_size)
         self.pos = pos
         self.alive = alive
 
-    def draw(self, surface) -> None:
-        pygame.draw.rect(surface, self.color, self.rect)
-    
-    def collide(self):
-        # ============================================
-        # TODO: Implement an event when block collides with a ball
-        self.alive=False
+   def draw(self, surface) -> None:
+        if self.alive:  # 블록이 살아있는 상태에서만 그리기
+            pygame.draw.rect(surface, self.color, self.rect)
 
+   def collide(self):
+        if self.color in config.colors:
+            current_index = config.colors.index(self.color)
+            if current_index < config.collision_limit:
+                self.color = config.colors[current_index + 1]
+            else:
+                self.alive = False
+                # 아이템 생성 확률
+                if random.random() < 0.2:  # 20% 확률로 아이템 생성
+                    item_type = random.choice(["red", "blue"])  # 두 가지 아이템 타입
+                    item_color = (
+                        config.add_score_color
+                        if item_type == "red"
+                        else config.paddle_long_color
+                    )
+                    return Item(self.rect.center, item_type, item_color)
+        return None
+                
 
 class Paddle(Basic):
     def __init__(self):
@@ -65,29 +79,28 @@ class Ball(Basic):
     def draw(self, surface):
         pygame.draw.ellipse(surface, self.color, self.rect)
 
-    def collide_block(self, blocks: list):
-        # ============================================
-        # TODO: Implement an event when the ball hits a block
-        for block in blocks:
-            if self.rect.colliderect(block.rect) and block.alive:  # 블록과 충돌한 경우
-
-                # 공이 블록의 상하면에 충돌한 경우 반사 처리
-                if self.rect.centerx > block.rect.left and self.rect.centerx < block.rect.right:
-                    if self.rect.top < block.rect.bottom and self.rect.bottom > block.rect.top:
-                        block.collide()
-                        blocks.remove(block)
-                        self.dir = 360 - self.dir  # 상하 벽에서 반사 (가로면 충돌)
+    
                 
-
-
-                # 공이 블록의 좌우면에 충돌한 경우 반사 처리
-                elif self.rect.centery > block.rect.top and self.rect.centery < block.rect.bottom:
-                    if self.rect.left < block.rect.right and self.rect.right > block.rect.left:
-                        block.collide()
-                        blocks.remove(block)
-                        self.dir=180-self.dir
-                break
-
+    def collide_block(self, blocks: list):
+        for block in blocks:
+            if block.alive and self.rect.colliderect(block.rect):
+                block.collide()
+                if abs(self.rect.bottom - block.rect.top) < 5 and self.dir > 180:
+                   
+                    self.dir = 360 - self.dir
+                elif abs(self.rect.top - block.rect.bottom) < 5 and self.dir < 180:
+                    
+                    self.dir = 360 - self.dir
+                elif abs(self.rect.right - block.rect.left) < 5:
+                    
+                    self.dir = 180 - self.dir
+                elif abs(self.rect.left - block.rect.right) < 5:
+                   
+                    self.dir = 180 - self.dir
+          
+                self.dir += random.randint(-5, 5)
+                break  
+            
     def collide_paddle(self, paddle: Paddle) -> None:
         if self.rect.colliderect(paddle.rect):
             self.dir = 360 - self.dir + random.randint(-5, 5)
@@ -95,19 +108,34 @@ class Ball(Basic):
     def hit_wall(self):
         # ============================================
         # TODO: Implement a service that bounces off when the ball hits the wall
-       # 좌우 벽 충돌
+        pass
+        # 좌우 벽 충돌
         if self.rect.left <= 0 or self.rect.right >= config.display_dimension[0]:
-            self.dir = 180 - self.dir  # 좌우 벽에서 반사
-            self.rect.clamp_ip(Rect(0, 0, config.display_dimension[0], config.display_dimension[1]))
-
+            self.dir = 180 - self.dir
         # 상단 벽 충돌
         if self.rect.top <= 0:
-            self.dir = -self.dir  # 상단 벽에서 반사
-            self.rect.clamp_ip(Rect(0, 0, config.display_dimension[0], config.display_dimension[1]))
+            self.dir = 360 - self.dir
+        
     
     def alive(self):
         # ============================================
         # TODO: Implement a service that returns whether the ball is alive or not
-        if self.rect.top > config.display_dimension[1]:
-          return False  # 공이 화면 밖으로 빠져나갔으므로 False 반환
-        return True  # 공이 화면 안에 남아있으면 True 반환
+        if self.rect.bottom >= config.display_dimension[1]:
+            config.life -= 1
+            
+            if config.life > 0:
+                return True  
+            else:
+                return False  
+        return True  
+    
+class Item(Basic):
+    def __init__(self, pos: tuple, item_type: str, color: tuple):
+        super().__init__(color, config.item_speed, pos, config.item_size)
+        self.type = item_type  # 'red' for score, 'blue' for paddle extension
+
+    def draw(self, surface):
+        pygame.draw.ellipse(surface, self.color, self.rect)
+
+    def move(self):
+        self.rect.move_ip(0, self.speed)  # 아래로 이동
