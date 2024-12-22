@@ -25,16 +25,17 @@ class Basic:
 
 
 class Block(Basic):
-    def __init__(self, color: tuple, pos: tuple = (0,0), alive = True):
+   def __init__(self, color: tuple, pos: tuple = (0, 0), alive=True):
         super().__init__(color, 0, pos, config.block_size)
         self.pos = pos
         self.alive = alive
 
-    def draw(self, surface) -> None:
-        pygame.draw.rect(surface, self.color, self.rect)
-    
-    def collide(self):
-         if self.color in config.colors:
+   def draw(self, surface) -> None:
+        if self.alive:  # 블록이 살아있는 상태에서만 그리기
+            pygame.draw.rect(surface, self.color, self.rect)
+
+   def collide(self):
+        if self.color in config.colors:
             current_index = config.colors.index(self.color)
             if current_index < config.collision_limit:
                 self.color = config.colors[current_index + 1]
@@ -49,6 +50,7 @@ class Block(Basic):
                         else config.paddle_long_color
                     )
                     return Item(self.rect.center, item_type, item_color)
+        return None
                 
 
 class Paddle(Basic):

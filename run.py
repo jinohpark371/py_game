@@ -76,13 +76,27 @@ def tick():
     for item in ITEMS[:]:
         item.move()
         if item.rect.colliderect(paddle.rect):
-            if item.type == "red":
-                life += 1  # 점수 추가
-            elif item.type == "blue":
-                paddle.rect.width *= config.paddle_long_ratio  # 패들 크기 증가
-            ITEMS.remove(item)
+         if item.type == "red":
+            life += 1  # 점수 추가
+         elif item.type == "blue":
+           
+            
+            # 공을 3개로 복제
+            new_balls = []
+            for ball in BALLS:
+                # 두 개의 새 공 생성 (복제)
+                ball1 = Ball(pos=(ball.rect.centerx, ball.rect.centery))
+                ball1.dir = ball.dir + random.randint(-15, 15)
+                
+                ball2 = Ball(pos=(ball.rect.centerx, ball.rect.centery))
+                ball2.dir = ball.dir - random.randint(-15, 15)
+                
+                new_balls.extend([ball1, ball2])
+            BALLS.extend(new_balls)
+            
+         ITEMS.remove(item)
         elif item.rect.top > config.display_dimension[1]:
-            ITEMS.remove(item)
+         ITEMS.remove(item)
 
 def main():
     global life, BLOCKS, ITEMS, BALLS, paddle, ball1, start
